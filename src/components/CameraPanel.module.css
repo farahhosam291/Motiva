@@ -1,0 +1,167 @@
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.cardSubtitle {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(155deg, #1c2a3f 0%, #10182a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scaleX(-1);
+}
+
+.videoVisible {
+  opacity: 1;
+}
+
+.canvas {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.canvasVisible {
+  opacity: 1;
+}
+
+.placeholderContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #aab6cc;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.iconCircle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cfd8ea;
+}
+
+.placeholderTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #e3e8f2;
+}
+
+.placeholderText {
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 320px;
+  color: #97a3bb;
+}
+
+.iconCircleError {
+  background: rgba(212, 108, 79, 0.14);
+  border-color: rgba(212, 108, 79, 0.35);
+  color: #e2a08c;
+}
+
+.placeholderTitleError {
+  color: #f0b9a8;
+}
+
+.overlayTopRight {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #e3e8f2;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.recDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e0654a;
+}
+
+.recDot.live {
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.trackingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.trackingErrorText {
+  font-size: 12.5px;
+  color: var(--color-danger);
+}

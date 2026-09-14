@@ -1,0 +1,90 @@
+.card {
+  background: #16202f;
+  border: 1px dashed #4a5f7d;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  color: #dbe4f3;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.debugTag {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #d69e2e;
+  color: #1a1204;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  margin-top: 2px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: #93a3bd;
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.row {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.label {
+  font-size: 11px;
+  color: #93a3bd;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.value {
+  margin-top: 3px;
+  font-family: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f4f7fb;
+}
+
+.valueMuted {
+  color: #5c6c85;
+}
+
+.valueBool {
+  color: #f4f7fb;
+}
+
+.valueTrue {
+  color: #6bd6a0;
+}
+
+.empty {
+  padding: 10px 0 2px;
+  font-size: 12.5px;
+  color: #93a3bd;
+}
