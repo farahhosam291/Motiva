@@ -5,22 +5,19 @@ import ControlBar from './components/ControlBar'
 import SignalsPanel, { type SignalsPanelMode } from './components/SignalsPanel'
 import EmotionCard from './components/EmotionCard'
 import ExplanationPanel from './components/ExplanationPanel'
-import Timeline from './components/Timeline'
 import DebugSignalsPanel from './components/DebugSignalsPanel'
 import SessionSummaryPanel from './components/SessionSummaryPanel'
 import SessionHistoryPanel from './components/SessionHistoryPanel'
-import BaselinePanel from './components/BaselinePanel'
 import DeviationPanel from './components/DeviationPanel'
-import ContradictionPanel from './components/ContradictionPanel'
 import SessionResultPanel from './components/SessionResultPanel'
-import PhysicalAIPanel from './components/PhysicalAIPanel'
+import HesitationPanel from './components/HesitationPanel'
 import ResearchModeToggle from './components/ResearchModeToggle'
 import { useCamera } from './hooks/useCamera'
 import { useLandmarkTracking } from './hooks/useLandmarkTracking'
 import { useSessionAnalysis } from './hooks/useSessionAnalysis'
 import { useSessionHistory } from './hooks/useSessionHistory'
 import { useBaselineCalibration } from './hooks/useBaselineCalibration'
-import type { AnalysisStatus, TimelineEntry } from './types/analysis'
+import type { AnalysisStatus } from './types/analysis'
 import type { CompletedSession } from './types/session'
 import './App.css'
 
@@ -42,16 +39,13 @@ function App() {
     // this branch is also dropped from the production bundle).
   } = useLandmarkTracking(videoRef, canvasRef, isCameraActive, import.meta.env.DEV)
 
-  const { liveStats, timeline, startNewSession, discardCurrentSession, finalizeSession } =
+  const { liveStats, startNewSession, discardCurrentSession, finalizeSession } =
     useSessionAnalysis(signals, status === 'analyzing')
   const { sessions, addSession, clearHistory, nextSessionNumber } = useSessionHistory()
-  const {
-    baseline,
-    phase: calibrationPhase,
-    progress: calibrationProgress,
-    startCalibration,
-    removeBaseline,
-  } = useBaselineCalibration(signals, isCameraActive)
+  // Only the calibrated baseline itself is needed here — it still feeds the
+  // deviation-from-baseline calculation in finalizeSession below even though
+  // the Personal Baseline calibration panel is no longer shown in the UI.
+  const { baseline } = useBaselineCalibration(signals, isCameraActive)
 
   // 'final' is driven by *having a result*, not by the camera status — Stop
   // Camera must keep the completed session visible (Section 10), and it
@@ -117,76 +111,68 @@ function App() {
   const displayedStats =
     panelMode === 'final' && currentSessionResult ? currentSessionResult.finalStats : liveStats
 
-  // Live mode keeps the original granular, single-frame behavior events
-  // (unchanged). Final mode shows the richer temporal-segment view (Section
-  // 6) when available, falling back to the plain event list for sessions
-  // saved before this feature existed.
   const advanced = currentSessionResult?.advanced ?? null
-  const displayedTimeline: TimelineEntry[] =
-    panelMode === 'final' && currentSessionResult
-      ? advanced
-        ? advanced.temporalSegments.map((segment, index) => ({
-            id: `temporal-${index}`,
-            time: segment.timeRange,
-            description: segment.description,
-          }))
-        : currentSessionResult.timeline
-      : timeline
-  const timelineActive = panelMode !== 'idle'
 
   return (
     <div className="app">
       <Header />
 
       <main className="dashboard">
-        <div className="dashboard__main">
-          <CameraPanel
-            status={status}
-            videoRef={videoRef}
-            canvasRef={canvasRef}
-            isCameraActive={isCameraActive}
-            isRequesting={isRequesting}
-            cameraError={cameraError}
-            isLoadingTrackers={isLoadingTrackers}
-            trackingError={trackingError}
-            faceDetected={signals.faceDetected}
-            poseDetected={signals.poseDetected}
-          />
-          <ControlBar
-            status={status}
-            isRequestingCamera={isRequesting}
-            onStartCamera={handleStartCamera}
-            onStartAnalysis={handleStartAnalysis}
-            onPauseAnalysis={handlePauseAnalysis}
-            onStopCamera={handleStopCamera}
-            onReset={handleReset}
-          />
-          <BaselinePanel
-            baseline={baseline}
-            phase={calibrationPhase}
-            progress={calibrationProgress}
-            isCameraActive={isCameraActive}
-            isAnalyzing={status === 'analyzing'}
-            onStart={startCalibration}
-            onDelete={removeBaseline}
-          />
-          <ResearchModeToggle enabled={researchMode} onChange={setResearchMode} />
-          <Timeline entries={displayedTimeline} isActive={timelineActive} />
+        {/* TOP: camera + controls | current analysis + raw values */}
+        <div className="dashboard__top">
+          <div className="dashboard__column">
+            <CameraPanel
+              status={status}
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              isCameraActive={isCameraActive}
+              isRequesting={isRequesting}
+              cameraError={cameraError}
+              isLoadingTrackers={isLoadingTrackers}
+              trackingError={trackingError}
+              faceDetected={signals.faceDetected}
+              poseDetected={signals.poseDetected}
+            />
+            <ControlBar
+              status={status}
+              isRequestingCamera={isRequesting}
+              onStartCamera={handleStartCamera}
+              onStartAnalysis={handleStartAnalysis}
+              onPauseAnalysis={handlePauseAnalysis}
+              onStopCamera={handleStopCamera}
+              onReset={handleReset}
+            />
+          </div>
+
+          <div className="dashboard__column dashboard__column--fill">
+            <EmotionCard
+              mode={panelMode}
+              estimation={currentSessionResult?.estimation ?? null}
+              sessionNumber={currentSessionNumber}
+            />
+            <DebugSignalsPanel
+              signals={signals}
+              isActive={isCameraActive}
+              isLoadingTrackers={isLoadingTrackers}
+              trackingError={trackingError}
+            />
+          </div>
         </div>
 
-        <div className="dashboard__sidebar">
-          <DebugSignalsPanel
-            signals={signals}
-            isActive={isCameraActive}
-            isLoadingTrackers={isLoadingTrackers}
-            trackingError={trackingError}
-          />
-          <EmotionCard
-            mode={panelMode}
-            estimation={currentSessionResult?.estimation ?? null}
-            sessionNumber={currentSessionNumber}
-          />
-          <SignalsPanel stats={displayedStats} mode={panelMode} />
+        {/* Research mode control */}
+        <div className="dashboard__controls">
+          <ResearchModeToggle enabled={researchMode} onChange={setResearchMode} />
+        </div>
+
+        {/* SIGNALS: face | body | behavior */}
+        <div className="dashboard__signals">
+          <SignalsPanel stats={displayedStats} mode={panelMode} group="facial" />
+          <SignalsPanel stats={displayedStats} mode={panelMode} group="body" />
+          <SignalsPanel stats={displayedStats} mode={panelMode} group="behavior" />
+        </div>
+
+        {/* INSIGHTS: why / deviation, hesitation / result */}
+        <div className="dashboard__insights">
           <ExplanationPanel
             mode={panelMode}
             explanation={currentSessionResult?.explanation ?? null}
@@ -197,23 +183,26 @@ function App() {
             deviations={advanced?.deviations ?? []}
             level={advanced?.deviationLevel ?? null}
           />
-          <ContradictionPanel
-            mode={panelMode}
-            contradiction={advanced?.contradiction ?? null}
-            researchMode={researchMode}
-          />
+          <HesitationPanel mode={panelMode} hesitationEvents={advanced?.hesitationEvents ?? null} />
           <SessionResultPanel
             mode={panelMode}
             sessionNumber={currentSessionNumber}
             advanced={advanced}
             researchMode={researchMode}
           />
-          <PhysicalAIPanel mode={panelMode} recommendation={advanced?.recommendation ?? null} />
+        </div>
+
+        {/* BOTTOM: session summary */}
+        <div className="dashboard__bottom">
           <SessionSummaryPanel
             mode={panelMode}
             sessionNumber={currentSessionNumber}
             summary={currentSessionResult?.summary ?? null}
           />
+        </div>
+
+        {/* HISTORY: full width */}
+        <div className="dashboard__history">
           <SessionHistoryPanel sessions={sessions} onClear={clearHistory} />
         </div>
       </main>

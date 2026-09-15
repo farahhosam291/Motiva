@@ -16,10 +16,7 @@ export default function DeviationPanel({ hasBaseline, deviations, level }: Devia
       <p className={styles.subtitle}>How this session compares to your own calibrated normal</p>
 
       {!hasBaseline ? (
-        <div className={styles.empty}>
-          No personal baseline on file. Use "Calibrate Baseline" before a session to see
-          comparisons here.
-        </div>
+        <div className={styles.empty}>No personal baseline on file yet.</div>
       ) : deviations.length === 0 ? (
         <div className={styles.empty}>Not enough data to compare against your baseline yet.</div>
       ) : (
