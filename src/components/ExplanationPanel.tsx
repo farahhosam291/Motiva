@@ -7,9 +7,12 @@ export type ExplanationPanelMode = 'idle' | 'live' | 'final'
 interface ExplanationPanelProps {
   mode: ExplanationPanelMode
   explanation: EstimationExplanation | null
+  /** Numbered, baseline/contradiction-aware reasons built from this session's
+   *  own data (Section 9). Optional so older saved sessions without it still render. */
+  whyReasons?: string[]
 }
 
-export default function ExplanationPanel({ mode, explanation }: ExplanationPanelProps) {
+export default function ExplanationPanel({ mode, explanation, whyReasons }: ExplanationPanelProps) {
   return (
     <section className={styles.card} aria-label="Explanation of the estimate">
       <div className={styles.headerRow}>
@@ -34,6 +37,19 @@ export default function ExplanationPanel({ mode, explanation }: ExplanationPanel
       {mode === 'final' && explanation && (
         <>
           <div className={styles.headline}>{explanation.headline}</div>
+
+          {whyReasons && whyReasons.length > 0 && (
+            <>
+              <div className={styles.sectionLabel}>Why?</div>
+              <ol className={styles.reasonsList}>
+                {whyReasons.map((reason) => (
+                  <li key={reason} className={styles.reasonListItem}>
+                    {reason}
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
 
           {explanation.topContributors.length > 0 ? (
             <>

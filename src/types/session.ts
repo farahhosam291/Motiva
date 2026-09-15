@@ -146,4 +146,10 @@ export interface CompletedSession {
   explanation: EstimationExplanation
   timeline: TimelineEvent[]
   summary: SessionSummary
+  /**
+   * The richer, baseline/contradiction/confidence-aware fields below are all
+   * optional so that sessions saved before this feature existed still load
+   * and render (just without this extra detail) instead of breaking.
+   */
+  advanced?: import('./advanced').AdvancedSessionReport
 }

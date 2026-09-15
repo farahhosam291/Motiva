@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RawSignals } from '../lib/signalExtraction'
 import { SessionAccumulator } from '../lib/signalAggregation'
 import { computeAffectEstimation } from '../lib/affectEstimation'
+import { buildAdvancedReport } from '../lib/finalReport'
 import { ALL_SIGNAL_KEYS } from '../types/session'
 import type { CompletedSession, SignalStatsMap, TimelineEvent } from '../types/session'
+import type { PersonalBaseline } from '../types/advanced'
 
 function createEmptyStatsMap(): SignalStatsMap {
   const map = {} as SignalStatsMap
@@ -50,49 +52,64 @@ export function useSessionAnalysis(signals: RawSignals, isCollecting: boolean) {
   const discardCurrentSession = resetToFreshAccumulator
 
   /** Call once (Pause Analysis) to freeze and compute the final result for `sessionNumber`. */
-  const finalizeSession = useCallback((sessionNumber: number): CompletedSession | null => {
-    const accumulator = accumulatorRef.current
-    if (!accumulator) return null
+  const finalizeSession = useCallback(
+    (sessionNumber: number, baseline: PersonalBaseline | null): CompletedSession | null => {
+      const accumulator = accumulatorRef.current
+      if (!accumulator) return null
 
-    const endedAt = Date.now()
-    const finalStats = accumulator.getLiveStats()
-    const finalTimeline = accumulator.getTimeline()
-    const coverage = accumulator.getDetectionCoverage()
-    const count = accumulator.getSampleCount()
+      const endedAt = Date.now()
+      const finalStats = accumulator.getLiveStats()
+      const finalTimeline = accumulator.getTimeline()
+      const coverage = accumulator.getDetectionCoverage()
+      const count = accumulator.getSampleCount()
 
-    const { estimation, explanation } = computeAffectEstimation(finalStats, coverage, count)
+      const { estimation, explanation } = computeAffectEstimation(finalStats, coverage, count)
 
-    const averageMovement = finalStats.movementIntensity.average
-    const mainBehaviors = Array.from(
-      new Set(finalTimeline.map((event) => event.description)),
-    ).slice(0, 5)
+      const averageMovement = finalStats.movementIntensity.average
+      const mainBehaviors = Array.from(
+        new Set(finalTimeline.map((event) => event.description)),
+      ).slice(0, 5)
 
-    const durationMs = endedAt - accumulator.startedAt
+      const durationMs = endedAt - accumulator.startedAt
 
-    const completed: CompletedSession = {
-      id: `session-${sessionNumber}-${accumulator.startedAt}`,
-      sessionNumber,
-      startedAt: accumulator.startedAt,
-      endedAt,
-      durationMs,
-      sampleCount: count,
-      finalStats,
-      estimation,
-      explanation,
-      timeline: finalTimeline,
-      summary: {
+      const advanced = buildAdvancedReport(
+        estimation,
+        finalStats,
+        coverage,
+        count,
+        baseline,
+        accumulator.getHesitationEvents(),
+        accumulator.getTemporalSamples(),
+        durationMs,
+      )
+
+      const completed: CompletedSession = {
+        id: `session-${sessionNumber}-${accumulator.startedAt}`,
         sessionNumber,
+        startedAt: accumulator.startedAt,
+        endedAt,
         durationMs,
         sampleCount: count,
-        averageMovement: averageMovement === null ? null : Math.round(averageMovement * 100),
-        mainBehaviors,
-        finalState: estimation.category,
-        finalScore: estimation.score,
-      },
-    }
+        finalStats,
+        estimation,
+        explanation,
+        timeline: finalTimeline,
+        summary: {
+          sessionNumber,
+          durationMs,
+          sampleCount: count,
+          averageMovement: averageMovement === null ? null : Math.round(averageMovement * 100),
+          mainBehaviors,
+          finalState: estimation.category,
+          finalScore: estimation.score,
+        },
+        advanced,
+      }
 
-    return completed
-  }, [])
+      return completed
+    },
+    [],
+  )
 
   return {
     liveStats,
