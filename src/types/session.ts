@@ -7,8 +7,13 @@ export const FACIAL_SIGNAL_KEYS = [
   'eyebrowRaise',
   'eyebrowLower',
   'blinkActivity',
+  'jawMovement',
+  'headYaw',
+  'headPitch',
+  'headRoll',
   'gazeMovement',
   'headMovement',
+  'facialMovementIntensity',
 ] as const
 
 export const BODY_SIGNAL_KEYS = [
@@ -43,9 +48,14 @@ export const SIGNAL_LABELS: Record<SignalKey, string> = {
   squint: 'Squint',
   eyebrowRaise: 'Eyebrow Raise',
   eyebrowLower: 'Eyebrow Lower',
-  blinkActivity: 'Blink Activity',
+  blinkActivity: 'Blink Frequency',
+  jawMovement: 'Jaw Movement',
+  headYaw: 'Head Yaw',
+  headPitch: 'Head Pitch',
+  headRoll: 'Head Roll',
   gazeMovement: 'Gaze Movement',
   headMovement: 'Head Movement',
+  facialMovementIntensity: 'Facial Movement Intensity',
   handMovement: 'Hand Movement',
   bodyMovement: 'Body Movement',
   postureChange: 'Posture Change',
@@ -70,6 +80,10 @@ export const EXPERIMENTAL_SIGNAL_KEYS: readonly SignalKey[] = [
   'movingBackward',
   'movingForward',
   'hesitation',
+  // A newly-added composite (frame-to-frame delta of several expression
+  // blendshapes) with hand-tuned scaling that hasn't been validated as
+  // thoroughly as the direct blendshape/geometry signals above it.
+  'facialMovementIntensity',
 ]
 
 export interface SignalStats {

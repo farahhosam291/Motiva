@@ -1,6 +1,7 @@
 import type { RawSignals } from './signalExtraction'
 import {
   ALL_SIGNAL_KEYS,
+  FACIAL_SIGNAL_KEYS,
   type SignalKey,
   type SignalStats,
   type SignalStatsMap,
@@ -20,12 +21,33 @@ const HEAD_MOVEMENT_SCALE = 15 // degrees of yaw/pitch change per sample -> 0-1
 const GAZE_MOVEMENT_SCALE = 6 // gaze-offset delta per sample -> 0-1
 const POSTURE_CHANGE_SCALE = 6 // degrees of torso-lean change per sample -> 0-1
 const SHOULDER_WIDTH_SCALE = 15 // shoulder-width delta per sample -> 0-1
+const HEAD_ANGLE_RANGE_DEGREES = 90 // yaw/pitch/roll clamp range -> maps to 0-100%
+const FACIAL_MOVEMENT_SCALE = 5 // avg expression-blendshape delta per sample -> 0-1
 
 const BLINK_CLOSED_THRESHOLD = 0.5 // eyeOpenness below this counts as "eyes closed"
 const BLINK_RATE_REFERENCE_PER_MIN = 25 // blink rate that maps to 100% blink activity
 const BLINK_WINDOW_MS = 60_000
 
 const EVENT_COOLDOWN_MS = 4000
+
+// Live "current" values are smoothed with an exponential moving average so a
+// single noisy frame doesn't make a percentage bar jump — this only affects
+// the smoothed display/session-stats stream; the Debug panel still reads
+// straight from the unsmoothed RawSignals coming out of useLandmarkTracking.
+const FACIAL_SMOOTHING_ALPHA = 0.35
+
+// The expression-blendshape signals whose frame-to-frame change defines
+// "facial movement intensity" — deliberately excludes eye/gaze/head signals,
+// which already have their own dedicated movement metrics.
+const EXPRESSION_SIGNAL_KEYS: SignalKey[] = [
+  'smile',
+  'mouthOpen',
+  'lipTension',
+  'eyebrowRaise',
+  'eyebrowLower',
+  'squint',
+  'jawMovement',
+]
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value))
@@ -37,16 +59,37 @@ function average(values: Array<number | null>): number | null {
   return present.reduce((sum, v) => sum + v, 0) / present.length
 }
 
+/** Average absolute change between two same-shaped signal snapshots, ignoring keys missing from either. */
+function averageAbsoluteDelta(
+  previous: Partial<Record<SignalKey, number | null>> | null,
+  current: Partial<Record<SignalKey, number | null>>,
+  keys: SignalKey[],
+): number | null {
+  if (!previous) return null
+  let total = 0
+  let count = 0
+  for (const key of keys) {
+    const prevValue = previous[key]
+    const currValue = current[key]
+    if (prevValue !== null && prevValue !== undefined && currValue !== null && currValue !== undefined) {
+      total += Math.abs(currValue - prevValue)
+      count += 1
+    }
+  }
+  return count > 0 ? total / count : null
+}
+
 /**
- * Derives the 17 signals computable directly from a single MediaPipe frame
+ * Derives every signal computable directly from a single MediaPipe frame
  * (the raw signals already carry their own frame-to-frame deltas). The
- * remaining 3 — blinkActivity (a rate over time) and hesitation (which
- * depends on blinkActivity) — need session state and are computed by
- * SessionAccumulator.
+ * exceptions — blinkActivity (a rate over time), hesitation (depends on
+ * blinkActivity), and facialMovementIntensity (a frame-to-frame delta of
+ * this very function's own output) — need cross-tick state and are
+ * computed by SessionAccumulator instead.
  */
 export function deriveInstantaneousSignals(
   raw: RawSignals,
-): Record<Exclude<SignalKey, 'blinkActivity' | 'hesitation'>, number | null> {
+): Record<Exclude<SignalKey, 'blinkActivity' | 'hesitation' | 'facialMovementIntensity'>, number | null> {
   const headMovement =
     raw.headMovementRaw === null ? null : clamp01(raw.headMovementRaw / HEAD_MOVEMENT_SCALE)
   const gazeMovement =
@@ -65,6 +108,17 @@ export function deriveInstantaneousSignals(
     movingBackward = clamp01(Math.max(0, -raw.shoulderWidthDelta) * SHOULDER_WIDTH_SCALE)
   }
 
+  // Head yaw/pitch/roll are exposed as unsigned "how far from center/level"
+  // magnitudes (0% = facing/level straight ahead, 100% = at the ±90° clamp),
+  // to fit the same 0-100% bar used by every other signal. Direction (e.g.
+  // "turned left" vs "turned right") is preserved separately in the raw
+  // signal and used by the behavior-event descriptions.
+  const headYaw = raw.headYaw === null ? null : clamp01(Math.abs(raw.headYaw) / HEAD_ANGLE_RANGE_DEGREES)
+  const headPitch =
+    raw.headPitch === null ? null : clamp01(Math.abs(raw.headPitch) / HEAD_ANGLE_RANGE_DEGREES)
+  const headRoll =
+    raw.headRoll === null ? null : clamp01(Math.abs(raw.headRoll) / HEAD_ANGLE_RANGE_DEGREES)
+
   const movementIntensity = average([handMovement, bodyMovement, headMovement])
   const stability = movementIntensity === null ? null : clamp01(1 - movementIntensity)
   const lookingAround = average([gazeMovement, headMovement])
@@ -77,6 +131,10 @@ export function deriveInstantaneousSignals(
     squint: raw.squint,
     eyebrowRaise: raw.eyebrowRaise,
     eyebrowLower: raw.eyebrowLower,
+    jawMovement: raw.jawMovement,
+    headYaw,
+    headPitch,
+    headRoll,
     gazeMovement,
     headMovement,
     handMovement,
@@ -183,6 +241,8 @@ export class SessionAccumulator {
   private blinkTimestamps: number[] = []
   private sampleCount = 0
   private detectedSampleCount = 0
+  private previousExpressionSnapshot: Partial<Record<SignalKey, number | null>> | null = null
+  private smoothedFacialValues: Partial<Record<SignalKey, number>> = {}
 
   constructor(startedAt: number) {
     this.startedAt = startedAt
@@ -209,7 +269,43 @@ export class SessionAccumulator {
     const instantaneous = deriveInstantaneousSignals(raw)
     const hesitation = average([instantaneous.lipTension, blinkActivity, instantaneous.squint])
 
-    const values = { ...instantaneous, blinkActivity, hesitation } as Record<SignalKey, number | null>
+    // Facial movement intensity: how much the expression itself is changing
+    // right now, from the *unsmoothed* frame-to-frame delta of the
+    // expression-blendshape signals (computed before smoothing is applied
+    // below, so it measures genuine change rather than the smoothed lag).
+    const expressionDelta = averageAbsoluteDelta(
+      this.previousExpressionSnapshot,
+      instantaneous,
+      EXPRESSION_SIGNAL_KEYS,
+    )
+    const facialMovementIntensity =
+      expressionDelta === null ? null : clamp01(expressionDelta * FACIAL_MOVEMENT_SCALE)
+    this.previousExpressionSnapshot = { ...instantaneous }
+
+    const values = {
+      ...instantaneous,
+      blinkActivity,
+      hesitation,
+      facialMovementIntensity,
+    } as Record<SignalKey, number | null>
+
+    // Smooth the facial signals (EMA) before they feed session stats and
+    // event detection — the Debug panel bypasses this and shows the raw,
+    // unsmoothed values straight from useLandmarkTracking instead.
+    for (const key of FACIAL_SIGNAL_KEYS) {
+      const rawValue = values[key]
+      if (rawValue === null) {
+        delete this.smoothedFacialValues[key]
+        continue
+      }
+      const previousSmoothed = this.smoothedFacialValues[key]
+      const smoothed =
+        previousSmoothed === undefined
+          ? rawValue
+          : previousSmoothed + FACIAL_SMOOTHING_ALPHA * (rawValue - previousSmoothed)
+      this.smoothedFacialValues[key] = smoothed
+      values[key] = smoothed
+    }
 
     for (const key of ALL_SIGNAL_KEYS) {
       const value = values[key]

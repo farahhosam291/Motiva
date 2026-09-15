@@ -50,6 +50,10 @@ export interface RawSignals {
   headMovementRaw: number | null
   /** Landmark geometry: magnitude of gaze-offset change since the previous frame. */
   gazeMovementRaw: number | null
+  /** Landmark geometry: eye-line tilt from horizontal, in degrees (0 = level). */
+  headRoll: number | null
+  /** Blendshape: average(jawLeft, jawRight, jawForward), 0-1. */
+  jawMovement: number | null
 }
 
 export const EMPTY_SIGNALS: RawSignals = {
@@ -73,6 +77,8 @@ export const EMPTY_SIGNALS: RawSignals = {
   shoulderWidthDelta: null,
   headMovementRaw: null,
   gazeMovementRaw: null,
+  headRoll: null,
+  jawMovement: null,
 }
 
 // Canonical MediaPipe Face Mesh landmark indices (468/478-point topology).
@@ -174,6 +180,22 @@ function computeGazeOffset(landmarks: NormalizedLandmark[]): { x: number; y: num
   return { x: (rX + lX) / 2, y: (rY + lY) / 2 }
 }
 
+/** Angle (degrees) of the line between the two eye centers, relative to horizontal. 0 = level. */
+function computeHeadRoll(landmarks: NormalizedLandmark[]): number | null {
+  const rOuter = landmarks[RIGHT_EYE_OUTER]
+  const rInner = landmarks[RIGHT_EYE_INNER]
+  const lInner = landmarks[LEFT_EYE_INNER]
+  const lOuter = landmarks[LEFT_EYE_OUTER]
+  if (!rOuter || !rInner || !lInner || !lOuter) return null
+
+  const rEyeCenter = { x: (rOuter.x + rInner.x) / 2, y: (rOuter.y + rInner.y) / 2 }
+  const lEyeCenter = { x: (lOuter.x + lInner.x) / 2, y: (lOuter.y + lInner.y) / 2 }
+
+  const dx = lEyeCenter.x - rEyeCenter.x
+  const dy = lEyeCenter.y - rEyeCenter.y
+  return clamp((Math.atan2(dy, dx) * 180) / Math.PI, -90, 90)
+}
+
 function averageMovement(
   previous: NormalizedLandmark[] | null,
   current: NormalizedLandmark[],
@@ -213,6 +235,8 @@ export function extractFaceSignals(
   headMovementRaw: number | null
   /** Landmark geometry: magnitude of gaze-offset change since the previous frame. */
   gazeMovementRaw: number | null
+  headRoll: number | null
+  jawMovement: number | null
   landmarks: NormalizedLandmark[] | null
 } {
   const landmarks = result?.faceLandmarks?.[0]
@@ -233,6 +257,8 @@ export function extractFaceSignals(
       eyebrowLower: null,
       headMovementRaw: null,
       gazeMovementRaw: null,
+      headRoll: null,
+      jawMovement: null,
       landmarks: null,
     }
   }
@@ -267,9 +293,15 @@ export function extractFaceSignals(
     (getBlendshapeScore(blendshapes, 'browDownLeft') +
       getBlendshapeScore(blendshapes, 'browDownRight')) /
     2
+  const jawMovement =
+    (getBlendshapeScore(blendshapes, 'jawLeft') +
+      getBlendshapeScore(blendshapes, 'jawRight') +
+      getBlendshapeScore(blendshapes, 'jawForward')) /
+    3
 
   const headPose = computeHeadPose(landmarks)
   const gaze = computeGazeOffset(landmarks)
+  const headRoll = computeHeadRoll(landmarks)
 
   let headMovementRaw: number | null = null
   let gazeMovementRaw: number | null = null
@@ -302,6 +334,8 @@ export function extractFaceSignals(
     eyebrowLower,
     headMovementRaw,
     gazeMovementRaw,
+    headRoll,
+    jawMovement,
     landmarks,
   }
 }

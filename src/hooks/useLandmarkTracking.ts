@@ -169,6 +169,8 @@ export function useLandmarkTracking(
               shoulderWidthDelta: poseSignals.shoulderWidthDelta,
               headMovementRaw: faceSignals.headMovementRaw,
               gazeMovementRaw: faceSignals.gazeMovementRaw,
+              headRoll: faceSignals.headRoll,
+              jawMovement: faceSignals.jawMovement,
             }
 
             if (logToConsole && timestamp - lastLogRef.current >= LOG_INTERVAL_MS) {
@@ -194,6 +196,8 @@ export function useLandmarkTracking(
                 shoulderWidthDelta: signals.shoulderWidthDelta?.toFixed(4),
                 headMovementRaw: signals.headMovementRaw?.toFixed(2),
                 gazeMovementRaw: signals.gazeMovementRaw?.toFixed(4),
+                headRoll: signals.headRoll?.toFixed(1),
+                jawMovement: signals.jawMovement?.toFixed(3),
               })
             }
 
