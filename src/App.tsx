@@ -9,11 +9,18 @@ import Timeline from './components/Timeline'
 import DebugSignalsPanel from './components/DebugSignalsPanel'
 import SessionSummaryPanel from './components/SessionSummaryPanel'
 import SessionHistoryPanel from './components/SessionHistoryPanel'
+import BaselinePanel from './components/BaselinePanel'
+import DeviationPanel from './components/DeviationPanel'
+import ContradictionPanel from './components/ContradictionPanel'
+import SessionResultPanel from './components/SessionResultPanel'
+import PhysicalAIPanel from './components/PhysicalAIPanel'
+import ResearchModeToggle from './components/ResearchModeToggle'
 import { useCamera } from './hooks/useCamera'
 import { useLandmarkTracking } from './hooks/useLandmarkTracking'
 import { useSessionAnalysis } from './hooks/useSessionAnalysis'
 import { useSessionHistory } from './hooks/useSessionHistory'
-import type { AnalysisStatus } from './types/analysis'
+import { useBaselineCalibration } from './hooks/useBaselineCalibration'
+import type { AnalysisStatus, TimelineEntry } from './types/analysis'
 import type { CompletedSession } from './types/session'
 import './App.css'
 
@@ -21,6 +28,7 @@ function App() {
   const [status, setStatus] = useState<AnalysisStatus>('idle')
   const [currentSessionNumber, setCurrentSessionNumber] = useState<number | null>(null)
   const [currentSessionResult, setCurrentSessionResult] = useState<CompletedSession | null>(null)
+  const [researchMode, setResearchMode] = useState(false)
 
   const { videoRef, isActive: isCameraActive, isRequesting, error: cameraError, startCamera, stopCamera } =
     useCamera()
@@ -37,6 +45,13 @@ function App() {
   const { liveStats, timeline, startNewSession, discardCurrentSession, finalizeSession } =
     useSessionAnalysis(signals, status === 'analyzing')
   const { sessions, addSession, clearHistory, nextSessionNumber } = useSessionHistory()
+  const {
+    baseline,
+    phase: calibrationPhase,
+    progress: calibrationProgress,
+    startCalibration,
+    removeBaseline,
+  } = useBaselineCalibration(signals, isCameraActive)
 
   // 'final' is driven by *having a result*, not by the camera status — Stop
   // Camera must keep the completed session visible (Section 10), and it
@@ -65,7 +80,7 @@ function App() {
 
   const handlePauseAnalysis = () => {
     if (currentSessionNumber === null) return
-    const completed = finalizeSession(currentSessionNumber)
+    const completed = finalizeSession(currentSessionNumber, baseline)
     if (completed) {
       setCurrentSessionResult(completed)
       addSession(completed)
@@ -101,8 +116,22 @@ function App() {
 
   const displayedStats =
     panelMode === 'final' && currentSessionResult ? currentSessionResult.finalStats : liveStats
-  const displayedTimeline =
-    panelMode === 'final' && currentSessionResult ? currentSessionResult.timeline : timeline
+
+  // Live mode keeps the original granular, single-frame behavior events
+  // (unchanged). Final mode shows the richer temporal-segment view (Section
+  // 6) when available, falling back to the plain event list for sessions
+  // saved before this feature existed.
+  const advanced = currentSessionResult?.advanced ?? null
+  const displayedTimeline: TimelineEntry[] =
+    panelMode === 'final' && currentSessionResult
+      ? advanced
+        ? advanced.temporalSegments.map((segment, index) => ({
+            id: `temporal-${index}`,
+            time: segment.timeRange,
+            description: segment.description,
+          }))
+        : currentSessionResult.timeline
+      : timeline
   const timelineActive = panelMode !== 'idle'
 
   return (
@@ -132,6 +161,16 @@ function App() {
             onStopCamera={handleStopCamera}
             onReset={handleReset}
           />
+          <BaselinePanel
+            baseline={baseline}
+            phase={calibrationPhase}
+            progress={calibrationProgress}
+            isCameraActive={isCameraActive}
+            isAnalyzing={status === 'analyzing'}
+            onStart={startCalibration}
+            onDelete={removeBaseline}
+          />
+          <ResearchModeToggle enabled={researchMode} onChange={setResearchMode} />
           <Timeline entries={displayedTimeline} isActive={timelineActive} />
         </div>
 
@@ -148,7 +187,28 @@ function App() {
             sessionNumber={currentSessionNumber}
           />
           <SignalsPanel stats={displayedStats} mode={panelMode} />
-          <ExplanationPanel mode={panelMode} explanation={currentSessionResult?.explanation ?? null} />
+          <ExplanationPanel
+            mode={panelMode}
+            explanation={currentSessionResult?.explanation ?? null}
+            whyReasons={advanced?.whyReasons}
+          />
+          <DeviationPanel
+            hasBaseline={advanced?.baselineUsed ?? false}
+            deviations={advanced?.deviations ?? []}
+            level={advanced?.deviationLevel ?? null}
+          />
+          <ContradictionPanel
+            mode={panelMode}
+            contradiction={advanced?.contradiction ?? null}
+            researchMode={researchMode}
+          />
+          <SessionResultPanel
+            mode={panelMode}
+            sessionNumber={currentSessionNumber}
+            advanced={advanced}
+            researchMode={researchMode}
+          />
+          <PhysicalAIPanel mode={panelMode} recommendation={advanced?.recommendation ?? null} />
           <SessionSummaryPanel
             mode={panelMode}
             sessionNumber={currentSessionNumber}

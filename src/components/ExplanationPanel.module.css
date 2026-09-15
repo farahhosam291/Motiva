@@ -82,3 +82,17 @@
   line-height: 1.6;
   color: var(--color-text-muted);
 }
+
+.reasonsList {
+  margin: 0 0 4px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reasonListItem {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}

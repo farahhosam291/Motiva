@@ -7,6 +7,14 @@ import {
   type SignalStatsMap,
   type TimelineEvent,
 } from '../types/session'
+import type { HesitationEvent } from '../types/advanced'
+import { HesitationWindowAnalyzer } from './hesitationWindowDetection'
+import type { TemporalSample } from './temporalChangeDetection'
+
+// How often a downsampled snapshot is kept for whole-session temporal
+// segmentation (Section 6) — every tick would be far more data than that
+// analysis needs.
+const TEMPORAL_SAMPLE_INTERVAL_MS = 1000
 
 // --- Calibration constants --------------------------------------------------
 // Every input to these formulas is a real, live measurement (a landmark
@@ -243,6 +251,10 @@ export class SessionAccumulator {
   private detectedSampleCount = 0
   private previousExpressionSnapshot: Partial<Record<SignalKey, number | null>> | null = null
   private smoothedFacialValues: Partial<Record<SignalKey, number>> = {}
+  private hesitationAnalyzer = new HesitationWindowAnalyzer()
+  private hesitationEvents: HesitationEvent[] = []
+  private temporalSamples: TemporalSample[] = []
+  private lastTemporalSampleAt = -Infinity
 
   constructor(startedAt: number) {
     this.startedAt = startedAt
@@ -342,7 +354,37 @@ export class SessionAccumulator {
       this.eventEdgeState.set(rule.key, state)
     }
 
+    const elapsedMs = nowMs - this.startedAt
+
+    // Rolling-window hesitation detection (Section 5) — analyzes the recent
+    // pattern across several signals, not this single tick.
+    const hesitationEvent = this.hesitationAnalyzer.update(elapsedMs, values)
+    if (hesitationEvent) {
+      this.hesitationEvents.push(hesitationEvent)
+    }
+
+    // Whole-session temporal segmentation (Section 6) samples at a coarser,
+    // fixed rate — the full per-tick history isn't needed for that analysis.
+    if (elapsedMs - this.lastTemporalSampleAt >= TEMPORAL_SAMPLE_INTERVAL_MS) {
+      this.lastTemporalSampleAt = elapsedMs
+      this.temporalSamples.push({
+        elapsedMs,
+        gazeMovement: values.gazeMovement,
+        headMovement: values.headMovement,
+        handMovement: values.handMovement,
+        movementIntensity: values.movementIntensity,
+      })
+    }
+
     return newEvents
+  }
+
+  getHesitationEvents(): HesitationEvent[] {
+    return [...this.hesitationEvents]
+  }
+
+  getTemporalSamples(): TemporalSample[] {
+    return [...this.temporalSamples]
   }
 
   getLiveStats(): SignalStatsMap {
