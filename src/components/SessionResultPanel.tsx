@@ -17,7 +17,7 @@ export default function SessionResultPanel({
   return (
     <section className={styles.card} aria-label="Session result">
       <div className={styles.title}>Session Result</div>
-      <p className={styles.subtitle}>Consolidated, baseline- and contradiction-aware summary</p>
+      <p className={styles.subtitle}>Consolidated, baseline-aware summary</p>
 
       {mode !== 'final' && (
         <div className={styles.empty}>
@@ -49,10 +49,6 @@ export default function SessionResultPanel({
             <div className={styles.cell}>
               <div className={styles.cellLabel}>Baseline Deviation</div>
               <div className={styles.cellValue}>{advanced.deviationLevel ?? 'N/A'}</div>
-            </div>
-            <div className={styles.cell}>
-              <div className={styles.cellLabel}>Cross-Modal Contradiction</div>
-              <div className={styles.cellValue}>{advanced.contradiction.score}%</div>
             </div>
             <div className={styles.cell}>
               <div className={styles.cellLabel}>Hesitation Events</div>

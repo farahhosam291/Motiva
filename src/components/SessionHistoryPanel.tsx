@@ -95,12 +95,6 @@ export default function SessionHistoryPanel({ sessions, onClear }: SessionHistor
                       {session.advanced && (
                         <>
                           <div className={styles.detailCell}>
-                            <div className={styles.detailLabel}>Contradiction</div>
-                            <div className={styles.detailValue}>
-                              {session.advanced.contradiction.score}%
-                            </div>
-                          </div>
-                          <div className={styles.detailCell}>
                             <div className={styles.detailLabel}>Hesitation Events</div>
                             <div className={styles.detailValue}>
                               {session.advanced.hesitationEvents.length}
