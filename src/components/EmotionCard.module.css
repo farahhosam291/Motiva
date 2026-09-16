@@ -29,8 +29,8 @@
   margin-top: 16px;
   padding: 16px;
   border-radius: var(--radius-md);
-  background: var(--color-warning-light);
-  border: 1px solid #f0ddb8;
+  background: var(--color-highlight-bg);
+  border: 1px solid var(--color-highlight-border);
 }
 
 .stateLabel {
@@ -38,7 +38,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-warning);
+  color: var(--color-highlight-text);
 }
 
 .stateValue {
@@ -82,7 +82,7 @@
 .fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-warning));
+  background: var(--gradient-brand);
   transition: width 0.4s ease;
 }
 

@@ -1,41 +1,58 @@
 :root {
-  --color-bg: #f3f5f9;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f8fafc;
-  --color-border: #e2e7f0;
-  --color-border-strong: #ccd4e0;
+  /* Deep dark-blue canvas with slightly lighter navy card surfaces. */
+  --color-bg: #0a0f2b;
+  --color-surface: #121a3f;
+  --color-surface-muted: #182349;
+  --color-border: #2a3466;
+  --color-border-strong: #3c4785;
 
-  --color-text-primary: #16202f;
-  --color-text-secondary: #48566b;
-  --color-text-muted: #8794a6;
-  --color-text-on-primary: #f5f8fc;
+  --color-text-primary: #f2f2fb;
+  --color-text-secondary: #b8b7dc;
+  --color-text-muted: #8583ad;
+  --color-text-on-primary: #ffffff;
 
-  --color-primary: #24406f;
-  --color-primary-dark: #182c4d;
-  --color-primary-light: #eaf0fb;
+  /* Deep blue / indigo — primary brand color (icons, secondary progress, links). */
+  --color-primary: #6366f1;
+  --color-primary-dark: #4338ca;
+  --color-primary-light: rgba(99, 102, 241, 0.18);
 
-  --color-accent: #2f7d5b;
-  --color-accent-light: #e7f4ed;
+  /* Violet / purple — secondary brand color (active states, final scores, highlights). */
+  --color-accent: #a78bfa;
+  --color-accent-light: rgba(167, 139, 250, 0.18);
 
-  --color-warning: #a9691c;
-  --color-warning-light: #faf0dd;
+  /* Violet highlight used for the primary result callout box. */
+  --color-highlight-bg: rgba(139, 92, 246, 0.16);
+  --color-highlight-border: rgba(167, 139, 250, 0.4);
+  --color-highlight-text: #c4b5fd;
 
-  --color-danger: #a8442d;
-  --color-danger-light: #f8e9e5;
+  --color-warning: #f0a94e;
+  --color-warning-light: rgba(240, 169, 78, 0.16);
 
-  --color-neutral: #5a6b8c;
-  --color-neutral-light: #eef1f7;
+  --color-danger: #f0765c;
+  --color-danger-light: rgba(240, 118, 92, 0.16);
+
+  --color-neutral: #9a98c8;
+  --color-neutral-light: rgba(154, 152, 200, 0.14);
 
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
 
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.07);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  /* Subtle blue -> indigo -> purple gradient used sparingly for brand accents. */
+  --gradient-brand: linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #a78bfa 100%);
+
+  /* Classy purple button treatment. */
+  --gradient-button: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  --gradient-button-hover: linear-gradient(135deg, #9d75f8 0%, #7c3aed 100%);
+  --shadow-button: 0 6px 16px rgba(124, 58, 237, 0.35);
+  --shadow-button-hover: 0 8px 20px rgba(124, 58, 237, 0.45);
 
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {

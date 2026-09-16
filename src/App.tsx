@@ -208,8 +208,8 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        EmotiSense AI — Physical AI Research Prototype. Face and pose tracking runs locally in
-        your browser; estimates reflect observable behavior only, not verified internal emotion.
+        Motiva — Physical AI Research Prototype. Face and pose tracking runs locally in your
+        browser; estimates reflect observable behavior only, not verified internal emotion.
       </footer>
     </div>
   )
