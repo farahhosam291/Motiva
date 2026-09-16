@@ -175,7 +175,7 @@ export function useLandmarkTracking(
 
             if (logToConsole && timestamp - lastLogRef.current >= LOG_INTERVAL_MS) {
               lastLogRef.current = timestamp
-              console.log('[EmotiSense raw signals]', {
+              console.log('[Motiva raw signals]', {
                 face: signals.faceDetected,
                 pose: signals.poseDetected,
                 smileScore: signals.smileScore?.toFixed(3),

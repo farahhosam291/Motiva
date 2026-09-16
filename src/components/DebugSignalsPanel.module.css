@@ -1,9 +1,9 @@
 .card {
-  background: #16202f;
-  border: 1px dashed #4a5f7d;
+  background: #1a1633;
+  border: 1px dashed #574f8f;
   border-radius: var(--radius-lg);
   padding: 16px 20px;
-  color: #dbe4f3;
+  color: #ded9f5;
 }
 
 .headerRow {
@@ -26,8 +26,8 @@
 .debugTag {
   padding: 2px 7px;
   border-radius: 4px;
-  background: #d69e2e;
-  color: #1a1204;
+  background: #a78bfa;
+  color: #1e1338;
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -38,7 +38,7 @@
   margin-top: 2px;
   margin-bottom: 14px;
   font-size: 12px;
-  color: #93a3bd;
+  color: #a49dc4;
   line-height: 1.5;
 }
 
@@ -57,7 +57,7 @@
 
 .label {
   font-size: 11px;
-  color: #93a3bd;
+  color: #a49dc4;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -68,15 +68,15 @@
   font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #f4f7fb;
+  color: #f6f4fd;
 }
 
 .valueMuted {
-  color: #5c6c85;
+  color: #6b6490;
 }
 
 .valueBool {
-  color: #f4f7fb;
+  color: #f6f4fd;
 }
 
 .valueTrue {
@@ -86,5 +86,5 @@
 .empty {
   padding: 10px 0 2px;
   font-size: 12.5px;
-  color: #93a3bd;
+  color: #a49dc4;
 }

@@ -9,32 +9,30 @@
   margin: 0 auto;
 }
 
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-
 .title {
-  font-size: clamp(24px, 3vw, 32px);
+  font-size: clamp(26px, 3vw, 34px);
   font-weight: 700;
-  color: var(--color-text-primary);
   letter-spacing: -0.01em;
+  background: var(--gradient-brand);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  width: fit-content;
 }
 
 .subtitle {
-  margin-top: 8px;
+  margin-top: 10px;
   max-width: 640px;
   font-size: 15px;
   line-height: 1.55;
   color: var(--color-text-secondary);
+}
+
+.supportingLine {
+  margin-top: 6px;
+  max-width: 640px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
 }
