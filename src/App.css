@@ -38,22 +38,17 @@
   flex: 1;
 }
 
-/* Research mode control */
-.dashboard__controls {
-  display: flex;
-}
-
-/* SIGNALS: face | body | behavior — equal-height cards */
+/* SIGNALS: face | body | behavior | facial AI model — equal-height cards */
 .dashboard__signals {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
 
-/* INSIGHTS: why / deviation, contradiction / hesitation, result / recommendation */
+/* INSIGHTS: deviation | hesitation | session result */
 .dashboard__insights {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   align-items: start;
 }
@@ -80,7 +75,8 @@
 }
 
 @media (max-width: 1024px) {
-  .dashboard__signals {
+  .dashboard__signals,
+  .dashboard__insights {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

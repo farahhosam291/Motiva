@@ -10,6 +10,7 @@ import {
 } from '@mediapipe/tasks-vision'
 import { createFaceLandmarker, createPoseLandmarker, createVisionFileset } from '../lib/mediapipe'
 import { EMPTY_SIGNALS, extractFaceSignals, extractPoseSignals, type RawSignals } from '../lib/signalExtraction'
+import { computeFaceBoundingBox, type FaceBoundingBox } from '../lib/faceCrop'
 
 const FACE_MESH_COLOR = 'rgba(125, 178, 255, 0.35)'
 const FACE_CONTOUR_COLOR = 'rgba(233, 196, 106, 0.9)'
@@ -26,12 +27,18 @@ interface LandmarkTrackingState {
   signals: RawSignals
   isLoadingTrackers: boolean
   trackingError: string | null
+  /** Padded, square, pixel-space box around the first detected face this
+   *  frame, or null when no face is currently detected. Used to crop a face
+   *  image for the facial-AI prediction request — purely additive, does not
+   *  affect any existing signal computation. */
+  faceBoundingBox: FaceBoundingBox | null
 }
 
 const INITIAL_STATE: LandmarkTrackingState = {
   signals: EMPTY_SIGNALS,
   isLoadingTrackers: false,
   trackingError: null,
+  faceBoundingBox: null,
 }
 
 export function useLandmarkTracking(
@@ -148,6 +155,10 @@ export function useLandmarkTracking(
             previousFaceLandmarksRef.current = faceSignals.landmarks
             previousPoseLandmarksRef.current = poseSignals.landmarks
 
+            const faceBoundingBox = faceResult.faceLandmarks[0]
+              ? computeFaceBoundingBox(faceResult.faceLandmarks[0], video.videoWidth, video.videoHeight)
+              : null
+
             const signals: RawSignals = {
               faceDetected: faceSignals.faceDetected,
               poseDetected: poseSignals.poseDetected,
@@ -203,7 +214,7 @@ export function useLandmarkTracking(
 
             if (timestamp - lastStateUpdateRef.current >= STATE_UPDATE_INTERVAL_MS) {
               lastStateUpdateRef.current = timestamp
-              setState((prev) => ({ ...prev, signals }))
+              setState((prev) => ({ ...prev, signals, faceBoundingBox }))
             }
           }
         }

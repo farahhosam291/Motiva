@@ -32,6 +32,7 @@
   background: var(--color-highlight-bg);
   border: 1px solid var(--color-highlight-border);
   margin-bottom: 14px;
+  text-align: center;
 }
 
 .stateLabel {
@@ -49,12 +50,12 @@
   color: var(--color-text-primary);
 }
 
-.safeSentence {
-  margin-top: 8px;
-  font-size: 12.5px;
-  line-height: 1.5;
+.stateConfidence {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--color-text-secondary);
-  font-style: italic;
+  font-variant-numeric: tabular-nums;
 }
 
 .grid {
@@ -87,61 +88,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.strongestLabel {
+.breakdownLabel {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  margin-bottom: 6px;
-}
-
-.strongestList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.strongestItem {
-  font-size: 12.5px;
-  color: var(--color-text-secondary);
-}
-
-.noSignals {
-  font-size: 12.5px;
-  color: var(--color-text-muted);
-}
-
-.researchBlock {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--color-border);
-}
-
-.researchLabel {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-warning);
-  margin-bottom: 8px;
-}
-
-.researchList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.researchItem {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.researchNote {
-  margin-top: 8px;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-  font-style: italic;
+  margin-bottom: 10px;
 }

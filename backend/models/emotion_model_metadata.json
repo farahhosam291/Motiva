@@ -1,0 +1,26 @@
+{
+  "architecture": "Residual-SE CNN",
+  "image_size": [
+    96,
+    96
+  ],
+  "input_channels": 1,
+  "input_pixel_range": [
+    0,
+    255
+  ],
+  "class_names": [
+    "angry",
+    "disgust",
+    "fear",
+    "happy",
+    "neutral",
+    "sad",
+    "surprise"
+  ],
+  "split_seed": 42,
+  "exact_duplicates_removed": 0,
+  "conflicting_rows_removed": 0,
+  "selected_epoch": 55,
+  "tta_flip_weight": 0.5
+}
