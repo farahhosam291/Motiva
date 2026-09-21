@@ -4,28 +4,32 @@ import CameraPanel from './components/CameraPanel'
 import ControlBar from './components/ControlBar'
 import SignalsPanel, { type SignalsPanelMode } from './components/SignalsPanel'
 import EmotionCard from './components/EmotionCard'
-import ExplanationPanel from './components/ExplanationPanel'
 import DebugSignalsPanel from './components/DebugSignalsPanel'
 import SessionSummaryPanel from './components/SessionSummaryPanel'
 import SessionHistoryPanel from './components/SessionHistoryPanel'
 import DeviationPanel from './components/DeviationPanel'
 import SessionResultPanel from './components/SessionResultPanel'
 import HesitationPanel from './components/HesitationPanel'
-import ResearchModeToggle from './components/ResearchModeToggle'
+import FacialAIPanel from './components/FacialAIPanel'
 import { useCamera } from './hooks/useCamera'
 import { useLandmarkTracking } from './hooks/useLandmarkTracking'
 import { useSessionAnalysis } from './hooks/useSessionAnalysis'
 import { useSessionHistory } from './hooks/useSessionHistory'
 import { useBaselineCalibration } from './hooks/useBaselineCalibration'
+import { useEmotionPrediction } from './hooks/useEmotionPrediction'
 import type { AnalysisStatus } from './types/analysis'
 import type { CompletedSession } from './types/session'
+import type { FinalAIResult } from './types/facialAI'
 import './App.css'
+
+function capitalize(label: string): string {
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
 
 function App() {
   const [status, setStatus] = useState<AnalysisStatus>('idle')
   const [currentSessionNumber, setCurrentSessionNumber] = useState<number | null>(null)
   const [currentSessionResult, setCurrentSessionResult] = useState<CompletedSession | null>(null)
-  const [researchMode, setResearchMode] = useState(false)
 
   const { videoRef, isActive: isCameraActive, isRequesting, error: cameraError, startCamera, stopCamera } =
     useCamera()
@@ -34,10 +38,18 @@ function App() {
     signals,
     isLoadingTrackers,
     trackingError,
+    faceBoundingBox,
     // Raw-signal console logging is a development aid only — disabled in
     // production builds (import.meta.env.DEV is statically false there, so
     // this branch is also dropped from the production bundle).
   } = useLandmarkTracking(videoRef, canvasRef, isCameraActive, import.meta.env.DEV)
+
+  // Runs its own throttled loop against the /predict-emotion backend
+  // whenever a face is detected (live display), and separately accumulates
+  // a session-wide average while status === 'analyzing', read once via
+  // finalizeSession() at Pause Analysis — this is now the source of the
+  // displayed final session result (see handlePauseAnalysis below).
+  const facialAI = useEmotionPrediction(videoRef, faceBoundingBox, isCameraActive, status === 'analyzing')
 
   const { liveStats, startNewSession, discardCurrentSession, finalizeSession } =
     useSessionAnalysis(signals, status === 'analyzing')
@@ -69,6 +81,7 @@ function App() {
 
   const handleStartAnalysis = () => {
     startNewSession()
+    facialAI.startSession()
     setStatus('analyzing')
   }
 
@@ -76,8 +89,31 @@ function App() {
     if (currentSessionNumber === null) return
     const completed = finalizeSession(currentSessionNumber, baseline)
     if (completed) {
-      setCurrentSessionResult(completed)
-      addSession(completed)
+      // The facial AI model's session-average is now the displayed final
+      // result — computed from every /predict-emotion response collected
+      // since Start Analysis, not the old rule-based estimation cascade.
+      const aiAverage = facialAI.finalizeSession()
+      const finalAIResult: FinalAIResult | undefined = aiAverage
+        ? { ...aiAverage, sessionNumber: currentSessionNumber, durationMs: completed.durationMs }
+        : undefined
+
+      const merged: CompletedSession = {
+        ...completed,
+        finalAIResult,
+        // Keep the Session Summary card's "Final State"/"Final Score" in
+        // sync with the AI result too, so it doesn't show a different
+        // answer than Estimated Emotional State / Session Result.
+        summary: finalAIResult
+          ? {
+              ...completed.summary,
+              finalState: capitalize(finalAIResult.prediction),
+              finalScore: Math.round(finalAIResult.confidence * 100),
+            }
+          : completed.summary,
+      }
+
+      setCurrentSessionResult(merged)
+      addSession(merged)
     }
     setStatus('paused')
   }
@@ -92,6 +128,7 @@ function App() {
 
   const handleReset = () => {
     discardCurrentSession()
+    facialAI.discardSession()
     setStatus('camera-on')
   }
 
@@ -101,12 +138,13 @@ function App() {
         // Camera dropped mid-analysis (never finalized) — discard the
         // in-progress data, it was never a completed session to preserve.
         discardCurrentSession()
+        facialAI.discardSession()
         setCurrentSessionNumber(null)
         setCurrentSessionResult(null)
       }
       setStatus('idle')
     }
-  }, [isCameraActive, status, discardCurrentSession])
+  }, [isCameraActive, status, discardCurrentSession, facialAI.discardSession])
 
   const displayedStats =
     panelMode === 'final' && currentSessionResult ? currentSessionResult.finalStats : liveStats
@@ -147,8 +185,12 @@ function App() {
           <div className="dashboard__column dashboard__column--fill">
             <EmotionCard
               mode={panelMode}
-              estimation={currentSessionResult?.estimation ?? null}
               sessionNumber={currentSessionNumber}
+              liveStatus={facialAI.status}
+              livePrediction={facialAI.prediction}
+              liveConfidence={facialAI.confidence}
+              liveProbabilities={facialAI.probabilities}
+              finalResult={currentSessionResult?.finalAIResult ?? null}
             />
             <DebugSignalsPanel
               signals={signals}
@@ -159,25 +201,22 @@ function App() {
           </div>
         </div>
 
-        {/* Research mode control */}
-        <div className="dashboard__controls">
-          <ResearchModeToggle enabled={researchMode} onChange={setResearchMode} />
-        </div>
-
-        {/* SIGNALS: face | body | behavior */}
+        {/* SIGNALS: face | body | behavior | facial AI model */}
         <div className="dashboard__signals">
           <SignalsPanel stats={displayedStats} mode={panelMode} group="facial" />
           <SignalsPanel stats={displayedStats} mode={panelMode} group="body" />
           <SignalsPanel stats={displayedStats} mode={panelMode} group="behavior" />
+          <FacialAIPanel
+            status={facialAI.status}
+            isCameraActive={isCameraActive}
+            prediction={facialAI.prediction}
+            confidence={facialAI.confidence}
+            probabilities={facialAI.probabilities}
+          />
         </div>
 
-        {/* INSIGHTS: why / deviation, hesitation / result */}
+        {/* INSIGHTS: deviation | hesitation | session result */}
         <div className="dashboard__insights">
-          <ExplanationPanel
-            mode={panelMode}
-            explanation={currentSessionResult?.explanation ?? null}
-            whyReasons={advanced?.whyReasons}
-          />
           <DeviationPanel
             hasBaseline={advanced?.baselineUsed ?? false}
             deviations={advanced?.deviations ?? []}
@@ -187,8 +226,7 @@ function App() {
           <SessionResultPanel
             mode={panelMode}
             sessionNumber={currentSessionNumber}
-            advanced={advanced}
-            researchMode={researchMode}
+            finalResult={currentSessionResult?.finalAIResult ?? null}
           />
         </div>
 

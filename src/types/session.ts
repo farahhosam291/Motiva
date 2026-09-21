@@ -142,6 +142,12 @@ export interface CompletedSession {
   durationMs: number
   sampleCount: number
   finalStats: SignalStatsMap
+  /**
+   * The old rule-based cascade output. No longer displayed anywhere — the
+   * facial AI model (`finalAIResult` below) is now the displayed final
+   * result — but still computed and kept internally since `advanced` below
+   * (deviation/hesitation) is derived from it and those are still shown.
+   */
   estimation: AffectEstimation
   explanation: EstimationExplanation
   timeline: TimelineEvent[]
@@ -152,4 +158,10 @@ export interface CompletedSession {
    * and render (just without this extra detail) instead of breaking.
    */
   advanced?: import('./advanced').AdvancedSessionReport
+  /**
+   * The frozen, session-average facial-AI result — the displayed final
+   * result for the session. Optional so sessions saved before this feature
+   * existed still load (just without an AI result to show).
+   */
+  finalAIResult?: import('./facialAI').FinalAIResult
 }
